@@ -564,8 +564,7 @@ class UserGeneralViewsTestCase(UserViewsTestCase):
 
     def test_profile_display(self):
         '''
-        Test that the user's profile page:
-        1. displays their location, bio, and header image
+        Test that the user's profile page displays their location, bio, and header image.
         '''
 
         # log user1 in 
@@ -573,7 +572,7 @@ class UserGeneralViewsTestCase(UserViewsTestCase):
             change_session[CURR_USER_KEY] = self.user1.id
 
         # go to user1's profile page
-        resp = self.client.get(url_for('edit_profile'))
+        resp = self.client.get(url_for('users_show', user_id=self.user1.id))
 
         self.assertEqual(resp.status_code, 200)
 
@@ -583,7 +582,34 @@ class UserGeneralViewsTestCase(UserViewsTestCase):
         self.assertIn(self.user1.bio, html)
         self.assertIn(self.user1.location, html)
         self.assertIn(self.user1.header_image_url, html)
+
+    def test_edit_profile(self):
+        '''
+        Test the edit_profile route.
+
+        '''
+
+    def test_edit_profile_unauth(self):
+        '''
+        Test that the edit_profile route redirects to the homepage and
+        flashes an unauthorized message if the user is not logged in.
+        '''
+
+        # attempt to get to the edit profile page
+        resp = self.client.get(url_for('edit_profile'), follow_redirects=True)
+
+        self.assertEqual(resp.status_code, 200)
+        self.assertEqual(request.path, url_for('homepage'))
+
+        html = resp.get_data(as_text=True)
+        unauth_msg = 'Access unauthorized.'
+
+        self.assertIn(unauth_msg, html)
+
         
+
+        
+    
 
 
 

@@ -230,7 +230,7 @@ def edit_profile():
         flash("Access unauthorized.", "danger")
         return redirect(url_for('homepage'))
 
-    return render_template('users/detail.html', user=g.user)
+    return render_template('users/edit.html', user_id=g.user.id)
 
 
 @app.route('/users/delete', methods=["POST"])
