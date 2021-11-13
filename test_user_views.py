@@ -556,17 +556,19 @@ class UserGeneralViewsTestCase(UserViewsTestCase):
         with self.client.session_transaction() as change_session:
             change_session[CURR_USER_KEY] = self.user1.id
 
-            # go to user1's profile page
-            resp = self.client.get(url_for('profile'))
+        # go to user1's profile page
+        resp = self.client.get(url_for('profile'))
 
-            self.assertEqual(resp.status_code, 200)
+        self.assertEqual(resp.status_code, 200)
 
-            html = resp.get_data(as_text=True)
+        html = resp.get_data(as_text=True)
 
-            self.assertIn(self.user1.bio, html)
-            self.assertIn(self.user1.location, html)
-            self.assertIn(self.user1.header_image_url, html)
+        self.assertIn(self.user1.username, html)
+        self.assertIn(self.user1.bio, html)
+        self.assertIn(self.user1.location, html)
+        self.assertIn(self.user1.header_image_url, html)
         
+
 
 
 
