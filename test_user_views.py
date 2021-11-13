@@ -50,13 +50,14 @@ class UserViewsTestCase(TestCase):
         self.app_context.push()
         self.client = app.test_client()
 
-        User.query.delete()
+        for model in [User, Message, Like, Follow]:
+            model.query.delete()
 
         self.user_data = {
             'email': 'test@test.com',
             'username': 'testuser',
             'password': 'PASSWORD',
-            'image_url': None
+            'image_url': None,
         }
 
     def tearDown(self):
@@ -257,6 +258,18 @@ class UserGeneralViewsTestCase(UserViewsTestCase):
         self.user_data2 = {k: '2' + v if v else None for k, v in self.user_data.items()}
         self.user2 = User.signup(**self.user_data2)
 
+        # add bio, location to user1
+        self.user1.bio = "This is user1 bio."
+        self.user1.location = 'Townsville, USA'
+        db.session.add(self.user1)
+        db.session.commit()
+
+        # add bio, location to user2
+        self.user2.bio = "This is user2 bio."
+        self.user2.location = 'City, Country'
+        db.session.add(self.user1)
+        db.session.commit()
+
     def test_list_users_all(self):
         '''Test that the list_users route displays a list of all users
         when given no search param.'''
@@ -267,10 +280,13 @@ class UserGeneralViewsTestCase(UserViewsTestCase):
 
         html = resp.get_data(as_text=True) 
 
+        # FIX
         # for user in [self.user1.username, self.user2.username]:
         #     self.assertIn(user, html)   
 
-        self.assertEqual(User.query.count(), 2)
+        # test that bios are shown
+        for user in [self.user1, self.user2]:
+            self.assertIn(user.bio, html)
 
     def test_list_users_with_search_param(self):
         '''
@@ -377,6 +393,9 @@ class UserGeneralViewsTestCase(UserViewsTestCase):
         # test that user2, user3, user4 are displayed (users whom user1 follows)
         for user in [self.user2, user3, user4]:
             self.assertIn(user.username, html)
+
+        # test that user bios are shown (only user2 has a bio)
+        self.assertIn(self.user2.bio, html)
   
     def test_show_following_unauth(self):
         '''
@@ -435,6 +454,9 @@ class UserGeneralViewsTestCase(UserViewsTestCase):
         # test that user2, user3, user4 are displayed (user1's followers)
         for user in [self.user2, user3, user4]:
             self.assertIn(user.username, html)
+
+        # test that user bios are shown (only user2 has a bio)
+        self.assertIn(self.user2.bio, html)
 
     def test_show_followers_unauth(self):
         '''
@@ -546,18 +568,12 @@ class UserGeneralViewsTestCase(UserViewsTestCase):
         1. displays their location, bio, and header image
         '''
 
-        # add location and bio to user1
-        self.user1.bio = "user's bio"
-        self.user1.location = "user's location"
-        db.session.add(self.user1)
-        db.session.commit()
-
         # log user1 in 
         with self.client.session_transaction() as change_session:
             change_session[CURR_USER_KEY] = self.user1.id
 
         # go to user1's profile page
-        resp = self.client.get(url_for('profile'))
+        resp = self.client.get(url_for('edit_profile'))
 
         self.assertEqual(resp.status_code, 200)
 
