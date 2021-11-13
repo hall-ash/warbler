@@ -2,10 +2,12 @@ import os
 
 from flask import Flask, render_template, request, flash, redirect, session, g, url_for
 from flask_debugtoolbar import DebugToolbarExtension
+from functools import wraps
+from werkzeug import useragents
 from custom_exceptions import UsernameAlreadyExistsError, EmailAlreadyExistsError
 import logging
 
-from forms import UserAddForm, LoginForm, MessageForm
+from forms import UserAddForm, LoginForm, MessageForm, UserEditForm
 from models import db, connect_db, User, Message, Follow, Like
 
 logging.basicConfig(filename='route-errors.log')
@@ -56,6 +58,16 @@ def do_logout():
 
     if CURR_USER_KEY in session:
         del session[CURR_USER_KEY]
+
+def login_required(func):
+    '''Decorator that requires a logged-in user.'''
+    @wraps(func)
+    def decorated_function(*args, **kwargs):
+        if g.user is None:
+            flash("Access unauthorized.", "danger")
+            return redirect(url_for('homepage'))
+        return func(*args, **kwargs)
+    return decorated_function
 
 
 @app.route('/signup', methods=["GET", "POST"])
@@ -122,6 +134,7 @@ def login():
 
 
 @app.route('/logout')
+@login_required
 def logout():
     """Handle logout of user."""
 
@@ -152,7 +165,7 @@ def list_users():
 
 
 @app.route('/users/<int:user_id>')
-def users_show(user_id):
+def show_user(user_id):
     """Show user page."""
 
     user = User.query.get_or_404(user_id)
@@ -169,36 +182,27 @@ def users_show(user_id):
 
 
 @app.route('/users/<int:user_id>/following')
+@login_required
 def show_following(user_id):
     """Show list of people this user is following."""
-
-    if not g.user:
-        flash("Access unauthorized.", "danger")
-        return redirect(url_for('homepage'))
 
     user = User.query.get_or_404(user_id)
     return render_template('users/following.html', user=user)
 
 
 @app.route('/users/<int:user_id>/followers')
+@login_required
 def show_followers(user_id):
     """Show list of followers of this user."""
-
-    if not g.user:
-        flash("Access unauthorized.", "danger")
-        return redirect(url_for('homepage'))
 
     user = User.query.get_or_404(user_id)
     return render_template('users/followers.html', user=user)
 
 
 @app.route('/users/follow/<int:follow_id>', methods=['POST'])
+@login_required
 def start_following(follow_id):
     """Add a follow for the currently-logged-in user."""
-
-    if not g.user:
-        flash("Access unauthorized.", "danger")
-        return redirect(url_for('homepage'))
 
     followed_user = User.query.get_or_404(follow_id)
     g.user.following.append(followed_user)
@@ -208,38 +212,59 @@ def start_following(follow_id):
 
 
 @app.route('/users/stop-following/<int:follow_id>', methods=['POST'])
+@login_required
 def stop_following(follow_id):
     """Have currently-logged-in-user stop following this user."""
-
-    if not g.user:
-        flash("Access unauthorized.", "danger")
-        return redirect(url_for('homepage'))
 
     followed_user = User.query.get(follow_id)
     g.user.following.remove(followed_user)
     db.session.commit()
 
-    return redirect(f"/users/{g.user.id}/following")
+    return redirect(url_for('show_following', user_id=g.user.id))
 
 
 @app.route('/users/profile', methods=["GET", "POST"])
+@login_required
 def edit_profile():
     """Update profile for current user."""
 
-    if not g.user:
-        flash("Access unauthorized.", "danger")
-        return redirect(url_for('homepage'))
+    # populate form with user data
+    form = UserEditForm(obj=g.user)
 
-    return render_template('users/edit.html', user_id=g.user.id)
+    if form.validate_on_submit():
+        try:
+
+            # check that password is correct
+            auth_user = User.authenticate(g.user.username, form.password.data)
+
+            if not auth_user:
+                flash('Unauthorized access', 'danger')
+                return redirect(url_for('homepage'))
+
+            # user is authorized, update data
+            g.user.username = form.username.data
+            g.user.email = form.email.data
+            g.user.image_url = form.image_url.data
+            g.user.header_image_url = form.header_image_url.data
+            g.user.bio = form.bio.data
+            g.user.location = form.location.data
+
+            db.session.add(g.user)
+            db.session.commit()
+
+            return redirect(url_for('show_user', user_id=g.user.id))
+
+        except Exception as e:
+            logging.exception(e)
+            return render_template('error-page.html')
+
+    return render_template('users/edit.html', form=form, user=g.user)
 
 
 @app.route('/users/delete', methods=["POST"])
+@login_required
 def delete_user():
     """Delete user."""
-
-    if not g.user:
-        flash("Access unauthorized.", "danger")
-        return redirect(url_for('homepage'))
 
     do_logout()
 
@@ -253,15 +278,12 @@ def delete_user():
 # Messages routes:
 
 @app.route('/messages/new', methods=["GET", "POST"])
+@login_required
 def messages_add():
     """Add a message:
 
     Show form if GET. If valid, update message and redirect to user page.
     """
-
-    if not g.user:
-        flash("Access unauthorized.", "danger")
-        return redirect(url_for('homepage'))
 
     form = MessageForm()
 
@@ -284,12 +306,9 @@ def messages_show(message_id):
 
 
 @app.route('/messages/<int:message_id>/delete', methods=["POST"])
+@login_required
 def messages_destroy(message_id):
     """Delete a message."""
-
-    if not g.user:
-        flash("Access unauthorized.", "danger")
-        return redirect("/")
 
     msg = Message.query.get(message_id)
     db.session.delete(msg)

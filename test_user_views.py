@@ -95,9 +95,8 @@ class UserSignupViewTestCase(UserViewsTestCase):
 
         resp = self.client.post(url_for('signup'), data=self.user_data, follow_redirects=True)
 
-        # test 200 ok status and successful redirect to homepage
+        # test 200 ok status 
         self.assertEqual(resp.status_code, 200)
-        self.assertEqual(request.path, url_for('homepage'))
 
         # test flash msg
         html = resp.get_data(as_text=True)
@@ -174,7 +173,6 @@ class UserLoginLogoutViewsTestCase(UserViewsTestCase):
 
         # test 200 ok status and successful redirect to homepage
         self.assertEqual(resp.status_code, 200)
-        self.assertEqual(request.path, url_for('homepage'))
 
         # test flash msg
         html = resp.get_data(as_text=True)
@@ -225,21 +223,20 @@ class UserLoginLogoutViewsTestCase(UserViewsTestCase):
         with self.client.session_transaction() as change_session:
             change_session[CURR_USER_KEY] = self.user.id
 
-            # log out user
-            resp = self.client.get(url_for('logout'), follow_redirects=True)
+        # log out user
+        resp = self.client.get(url_for('logout'), follow_redirects=True)
 
-            self.assertEqual(resp.status_code, 200)
-            self.assertEqual(request.path, url_for('login'))
+        self.assertEqual(resp.status_code, 200)
 
-            html = resp.get_data(as_text=True)
-            logout_msg = "You've been logged out."
-            
-            # check that logout message is displayed
-            self.assertIn(logout_msg, html)
+        html = resp.get_data(as_text=True)
+        logout_msg = "You've been logged out."
+        
+        # check that logout message is displayed
+        self.assertIn(logout_msg, html)
 
-            # check that session and g are cleared
-            self.assertNotIn(CURR_USER_KEY, session)
-            self.assertIsNone(g.user)
+        # check that session and g are cleared
+        self.assertNotIn(CURR_USER_KEY, session)
+        self.assertIsNone(g.user)
 
 
 class UserGeneralViewsTestCase(UserViewsTestCase):
@@ -320,7 +317,7 @@ class UserGeneralViewsTestCase(UserViewsTestCase):
         for user in [self.user1, self.user2]:
             self.assertNotIn(user.username, html)
 
-    def test_users_show(self):
+    def test_show_users(self):
         '''Test that the users's profile is displayed with their messages (100 max)
         listed in order with the most recent at the top.'''
 
@@ -338,7 +335,7 @@ class UserGeneralViewsTestCase(UserViewsTestCase):
             else:
                 self.user1.messages.append(Message(**MESSAGE_DATA))
 
-        resp = self.client.get(url_for('users_show', user_id=self.user1.id))
+        resp = self.client.get(url_for('show_user', user_id=self.user1.id))
 
         self.assertEqual(resp.status_code, 200)
 
@@ -407,7 +404,6 @@ class UserGeneralViewsTestCase(UserViewsTestCase):
         resp = self.client.get(url_for('show_following', user_id=self.user1.id), follow_redirects=True)
 
         self.assertEqual(resp.status_code, 200)
-        self.assertEqual(request.path, url_for('homepage'))
 
         html = resp.get_data(as_text=True)
         unauth_msg = 'Access unauthorized.'
@@ -468,7 +464,6 @@ class UserGeneralViewsTestCase(UserViewsTestCase):
         resp = self.client.get(url_for('show_followers', user_id=self.user1.id), follow_redirects=True)
 
         self.assertEqual(resp.status_code, 200)
-        self.assertEqual(request.path, url_for('homepage'))
 
         html = resp.get_data(as_text=True)
         unauth_msg = 'Access unauthorized.'
@@ -487,10 +482,9 @@ class UserGeneralViewsTestCase(UserViewsTestCase):
             change_session[CURR_USER_KEY] = self.user1.id
 
         # have user1 follow user2
-        resp = self.client.post(url_for('start_following', follow_id=self.user2.id))
+        resp = self.client.post(url_for('start_following', follow_id=self.user2.id), follow_redirects=True)
 
         self.assertEqual(resp.status_code, 200)
-        self.assertEqual(request.path, url_for('show_following', user_id=self.user1.id))
 
         html = resp.get_data(as_text=True)
 
@@ -510,7 +504,6 @@ class UserGeneralViewsTestCase(UserViewsTestCase):
         resp = self.client.post(url_for('start_following', follow_id=self.user2.id), follow_redirects=True)
 
         self.assertEqual(resp.status_code, 200)
-        self.assertEqual(request.path, url_for('homepage'))
 
         html = resp.get_data(as_text=True)
         unauth_msg = 'Access unauthorized.'
@@ -526,16 +519,17 @@ class UserGeneralViewsTestCase(UserViewsTestCase):
         # FIX WHOLE METHOD REDIRECTING TO UNAUTHORIZED DESPITE LOGIN
         # have user1 follow user2
         self.user1.following.append(self.user2)
+        db.session.add(self.user1)
+        db.session.commit()
 
         # log user1 in 
         with self.client.session_transaction() as change_session:
             change_session[CURR_USER_KEY] = self.user1.id
 
         # have user1 stop following user2
-        resp = self.client.post(url_for('stop_following', follow_id=self.user2.id))
+        resp = self.client.post(url_for('stop_following', follow_id=self.user2.id), follow_redirects=True)
 
         self.assertEqual(resp.status_code, 200)
-        self.assertEqual(request.path, url_for('show_following', user_id=self.user1.id))
 
         html = resp.get_data(as_text=True)
 
@@ -555,7 +549,6 @@ class UserGeneralViewsTestCase(UserViewsTestCase):
         resp = self.client.post(url_for('stop_following', follow_id=self.user2.id), follow_redirects=True)
 
         self.assertEqual(resp.status_code, 200)
-        self.assertEqual(request.path, url_for('homepage'))
 
         html = resp.get_data(as_text=True)
         unauth_msg = 'Access unauthorized.'
@@ -572,7 +565,7 @@ class UserGeneralViewsTestCase(UserViewsTestCase):
             change_session[CURR_USER_KEY] = self.user1.id
 
         # go to user1's profile page
-        resp = self.client.get(url_for('users_show', user_id=self.user1.id))
+        resp = self.client.get(url_for('show_user', user_id=self.user1.id))
 
         self.assertEqual(resp.status_code, 200)
 
@@ -585,9 +578,35 @@ class UserGeneralViewsTestCase(UserViewsTestCase):
 
     def test_edit_profile(self):
         '''
-        Test the edit_profile route.
-
+        Test that the edit_profile route succesfully updates the user's profile
+        and redirects to the user detail page.
         '''
+        # log user1 in 
+        with self.client.session_transaction() as change_session:
+            change_session[CURR_USER_KEY] = self.user1.id
+
+        NEW_DATA = {
+            'username': 'New Username',
+            'email': 'new@gmail.com',
+            'image_url': 'https://images.pexels.com/photos/1170986/pexels-photo-1170986.jpeg?auto=compress&cs=tinysrgb&w=1260&h=750&dpr=2',
+            'header_image_url': 'https://images.pexels.com/photos/1170986/pexels-photo-1170986.jpeg?auto=compress&cs=tinysrgb&w=1260&h=750&dpr=2',
+            'bio': 'New bio.',
+            'location': 'New location',
+            'password': 'PASSWORD'
+        }
+
+        resp = self.client.post(url_for('edit_profile'), data=NEW_DATA, follow_redirects=True)
+
+        self.assertEqual(resp.status_code, 200)
+        
+        # check that user is redirected to user detail page
+        html = resp.get_data(as_text=True)
+        self.assertIn('<h4 id="sidebar-username">@New Username</h4>', html)
+
+        # check that all attrs are updated
+        for attr in ['username', 'email', 'image_url', 'header_image_url', 'bio', 'location']:
+            self.assertEqual(getattr(self.user1, attr), NEW_DATA[attr])
+
 
     def test_edit_profile_unauth(self):
         '''
@@ -599,7 +618,6 @@ class UserGeneralViewsTestCase(UserViewsTestCase):
         resp = self.client.get(url_for('edit_profile'), follow_redirects=True)
 
         self.assertEqual(resp.status_code, 200)
-        self.assertEqual(request.path, url_for('homepage'))
 
         html = resp.get_data(as_text=True)
         unauth_msg = 'Access unauthorized.'
