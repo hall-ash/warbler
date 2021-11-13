@@ -3,6 +3,7 @@ import os
 from flask import Flask, render_template, request, flash, redirect, session, g, url_for
 from flask_debugtoolbar import DebugToolbarExtension
 from functools import wraps
+from sqlalchemy.orm import query
 from werkzeug import useragents
 from custom_exceptions import UsernameAlreadyExistsError, EmailAlreadyExistsError
 import logging
@@ -330,11 +331,7 @@ def homepage():
     """
 
     if g.user:
-        messages = (Message
-                    .query
-                    .order_by(Message.timestamp.desc())
-                    .limit(100)
-                    .all())
+        messages = g.user.get_all_msgs() # get msgs from user and people whom user is following
 
         return render_template('home.html', messages=messages)
 

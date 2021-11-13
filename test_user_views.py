@@ -607,11 +607,10 @@ class UserGeneralViewsTestCase(UserViewsTestCase):
         for attr in ['username', 'email', 'image_url', 'header_image_url', 'bio', 'location']:
             self.assertEqual(getattr(self.user1, attr), NEW_DATA[attr])
 
-
-    def test_edit_profile_unauth(self):
+    def test_edit_profile_logged_out(self):
         '''
         Test that the edit_profile route redirects to the homepage and
-        flashes an unauthorized message if the user is not logged in.
+        flashes an error message if the user is not logged in.
         '''
 
         # attempt to get to the edit profile page
@@ -624,10 +623,41 @@ class UserGeneralViewsTestCase(UserViewsTestCase):
 
         self.assertIn(unauth_msg, html)
 
+    def test_edit_profile_unauth(self):
+        '''
+        Test that the edit_profile route redirects to the homepage and
+        flashes an error message if the user inputs an invalid password.
+        '''
+
+        # log user1 in 
+        with self.client.session_transaction() as change_session:
+            change_session[CURR_USER_KEY] = self.user1.id
+
+        NEW_DATA = {
+            'username': 'New Username',
+            'email': 'new@gmail.com',
+            'image_url': 'https://images.pexels.com/photos/1170986/pexels-photo-1170986.jpeg?auto=compress&cs=tinysrgb&w=1260&h=750&dpr=2',
+            'header_image_url': 'https://images.pexels.com/photos/1170986/pexels-photo-1170986.jpeg?auto=compress&cs=tinysrgb&w=1260&h=750&dpr=2',
+            'bio': 'New bio.',
+            'location': 'New location',
+            'password': 'INVALID'
+        }
+
+        resp = self.client.post(url_for('edit_profile'), data=NEW_DATA, follow_redirects=True)
+
+        self.assertEqual(resp.status_code, 200)
+        
+        # check that user is redirected to homepage
+        html = resp.get_data(as_text=True)
+        self.assertNotIn('<h4 id="sidebar-username">@New Username</h4>', html)
+
+        # check that attrs have not been updated
+        for attr in ['username', 'email', 'image_url', 'header_image_url', 'bio', 'location']:
+            self.assertNotEqual(getattr(self.user1, attr), NEW_DATA[attr])
         
 
         
-    
+    # FIX TEST HOMEPAGE MSGS 
 
 
 

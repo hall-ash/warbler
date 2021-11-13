@@ -154,6 +154,17 @@ class User(db.Model):
         # found_user_list = [user for user in self.following if user == other_user]
         # return len(found_user_list) == 1
 
+    def get_all_msgs(self, limit=100):
+        '''
+        Get messages from the user and the users that the user is following. 
+        Returns at most 'limit' messages ordered by most recent first.
+        '''
+
+        msgs_from_following = Message.query.join(Follow, Message.user_id == Follow.user_being_followed_id).filter(Follow.user_following_id == self.id)
+        own_msgs = Message.query.filter_by(user_id = self.id)
+
+        return msgs_from_following.union_all(own_msgs).order_by(Message.timestamp.desc()).limit(limit).all()
+
     @classmethod
     def signup(cls, username, email, password, image_url):
         """Sign up user.
@@ -171,7 +182,7 @@ class User(db.Model):
         )
 
         db.session.add(user)
-        
+
         try: 
             db.session.commit()
              # is there a reason db.session.commit() is not in this method
