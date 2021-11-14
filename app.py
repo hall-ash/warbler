@@ -8,7 +8,7 @@ from werkzeug import useragents
 from custom_exceptions import UsernameAlreadyExistsError, EmailAlreadyExistsError
 import logging
 
-from forms import UserAddForm, LoginForm, MessageForm, UserEditForm
+from forms import UserAddForm, LoginForm, MessageForm, UserEditForm, MessageLikeForm
 from models import db, connect_db, User, Message, Follow, Like
 
 logging.basicConfig(filename='route-errors.log')
@@ -24,7 +24,6 @@ app.config['SQLALCHEMY_DATABASE_URI'] = (
 
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 app.config['SQLALCHEMY_ECHO'] = False
-app.config['DEBUG_TB_INTERCEPT_REDIRECTS'] = True
 app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', "it's a secret")
 toolbar = DebugToolbarExtension(app)
 
@@ -274,6 +273,24 @@ def delete_user():
 
     return redirect("/signup")
 
+@app.route('/users/toggle_like/<int:msg_id>', methods=['POST'])
+@login_required
+def toggle_msg_like(msg_id):
+    '''
+    Add a like to a message if not in user's likes, otherwise remove it from user's likes.
+    Users may not like/unlike their own messages.
+    '''
+
+    msg = Message.query.get_or_404(msg_id)
+
+    try:
+        g.user.toggle_msg_like(msg)
+        return redirect(url_for('homepage'))
+
+    except Exception as e:
+        logging.exception(e)
+        return render_template('eror-page.html')
+
 
 ##############################################################################
 # Messages routes:
@@ -331,9 +348,11 @@ def homepage():
     """
 
     if g.user:
+        form = MessageLikeForm() # let logged-in user like messages
+
         messages = g.user.get_all_msgs() # get msgs from user and people whom user is following
 
-        return render_template('home.html', messages=messages)
+        return render_template('home.html', messages=messages, form=form)
 
     else:
         return render_template('home-anon.html')

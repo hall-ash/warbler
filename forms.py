@@ -30,3 +30,8 @@ class UserEditForm(UserAddForm):
     header_image_url = StringField('Header Image URL')
     bio = TextAreaField('Bio')
     location = StringField('Location')
+
+class MessageLikeForm(FlaskForm):
+    '''Form to like a message.'''
+
+    

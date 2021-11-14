@@ -165,6 +165,34 @@ class User(db.Model):
 
         return msgs_from_following.union_all(own_msgs).order_by(Message.timestamp.desc()).limit(limit).all()
 
+
+    def toggle_msg_like(self, msg):
+        '''If message is not in users's list of liked messages, add it. Otherwise, remove
+        from liked messages. '''
+
+        try:
+
+            # don't allow user to like/unlike own messages
+            if msg.user_id != self.id:
+
+                # if message is already liked, remove it from likes, else add it to likes
+                self.likes.remove(msg) if self.is_liked_msg(msg.id) else self.likes.append(msg)
+
+                db.session.add(self)
+                db.session.commit()
+                
+        except Exception as e:
+            logging.exception(e)
+            raise e
+
+
+    def is_liked_msg(self, msg_id):
+        '''Returns true if the message is liked by the user. False otherwise.'''
+
+        is_liked = bool(Like.query.filter_by(message_id=msg_id, user_id=self.id).count())
+
+        return is_liked
+
     @classmethod
     def signup(cls, username, email, password, image_url):
         """Sign up user.
@@ -250,6 +278,8 @@ class Message(db.Model):
     )
 
     user = db.relationship('User')
+
+    likes = db.relationship('Like')
 
     def __repr__(self):
         return f"<Message id={self.id}, user_id={self.user_id}>"
