@@ -105,13 +105,7 @@ class User(db.Model):
         nullable=False,
     )
 
-    messages = db.relationship('Message')
-
-# SELECT username AS follower
-# FROM users
-# JOIN follows
-# ON follows.user_following_id = users.id
-# WHERE follows.user_being_followed_id = 1;
+    messages = db.relationship('Message', cascade='all, delete-orphan')
 
     followers = db.relationship(
         "User",
@@ -281,7 +275,7 @@ class Message(db.Model):
 
     user_id = db.Column(
         db.Integer,
-        db.ForeignKey('users.id', ondelete='CASCADE'),
+        db.ForeignKey('users.id', ondelete='cascade'),
         nullable=False,
     )
 

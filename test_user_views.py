@@ -64,7 +64,6 @@ class UserViewsTestCase(TestCase):
         '''Clean up fouled transactions.'''
 
         db.session.rollback()
-        # self.app_context.pop()
 
 
 class UserSignupViewTestCase(UserViewsTestCase):
@@ -104,34 +103,7 @@ class UserSignupViewTestCase(UserViewsTestCase):
         self.assertIn(welcome_msg, html)
 
         # test user succesfully added
-        self.assertEqual(User.query.count(), 1)
-
-        # test that user id is added to session obj FIX
-        # self.assertEqual(session.get(CURR_USER_KEY), g.user.id)
-
-    # def test_signup_username_taken(self):
-    #     '''
-    #     Test that an error message is flashed and the user is shown the form again 
-    #     when attempting to signup with a username that is already registered. 
-    #     '''
-
-    #     # add user to db with hashed pw
-    #     user = User.signup(**self.user_data)
-
-    #     self.user_data['email'] = 'diff@gmail.com' # change to diff email
-    #     # sign up a user with same username
-    #     resp = self.client.post(url_for('signup'), data=self.user_data, follow_redirects=True)
-
-    #     self.assertEqual(resp.status_code, 200)
-
-    #     html = resp.get_data(as_text=True)
-    #     msg = f'Username {user.username} is taken.'
-    #     form_markup = '<form method="POST" id="user_form">'
-
-    #     for component in [msg, form_markup]:
-    #         self.assertIn(component, html)
-
-    
+        self.assertEqual(User.query.count(), 1) 
 
 class UserLoginLogoutViewsTestCase(UserViewsTestCase):
     '''Test user login and logout views.'''
@@ -178,9 +150,6 @@ class UserLoginLogoutViewsTestCase(UserViewsTestCase):
         html = resp.get_data(as_text=True)
         welcome_msg = f"Hello, {self.user_data['username']}!"
         self.assertIn(welcome_msg, html)
-
-        # test that user id is added to session obj FIX
-        #self.assertEqual(session.get(CURR_USER_KEY), self.user.id)
 
     def test_login_submit_invalid_username(self):
         '''
@@ -229,7 +198,7 @@ class UserLoginLogoutViewsTestCase(UserViewsTestCase):
         self.assertEqual(resp.status_code, 200)
 
         html = resp.get_data(as_text=True)
-        logout_msg = "You've been logged out."
+        logout_msg = "You have been logged out."
         
         # check that logout message is displayed
         self.assertIn(logout_msg, html)
@@ -277,9 +246,8 @@ class UserGeneralViewsTestCase(UserViewsTestCase):
 
         html = resp.get_data(as_text=True) 
 
-        # FIX
-        # for user in [self.user1.username, self.user2.username]:
-        #     self.assertIn(user, html)   
+        for user in [self.user1.username, self.user2.username]:
+            self.assertIn(user, html)   
 
         # test that bios are shown
         for user in [self.user1, self.user2]:
@@ -476,7 +444,6 @@ class UserGeneralViewsTestCase(UserViewsTestCase):
         as a follower of the given user and that the logged-in-user
         is redirected to the page of users they follow.
         '''
-        # FIX WHOLE METHOD REDIRECTING TO UNAUTHORIZED DESPITE LOGIN
         # log user1 in 
         with self.client.session_transaction() as change_session:
             change_session[CURR_USER_KEY] = self.user1.id
@@ -516,7 +483,7 @@ class UserGeneralViewsTestCase(UserViewsTestCase):
         as a follower of the given user and that the logged-in-user
         is redirected to the page of users they follow.
         '''
-        # FIX WHOLE METHOD REDIRECTING TO UNAUTHORIZED DESPITE LOGIN
+ 
         # have user1 follow user2
         self.user1.following.append(self.user2)
         db.session.add(self.user1)
@@ -656,8 +623,6 @@ class UserGeneralViewsTestCase(UserViewsTestCase):
             self.assertNotEqual(getattr(self.user1, attr), NEW_DATA[attr])
         
 
-        
-    # FIX TEST HOMEPAGE MSGS 
 
 
 

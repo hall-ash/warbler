@@ -140,7 +140,7 @@ def logout():
 
     do_logout()
 
-    flash("You've been logged out.", 'success')
+    flash("You have been logged out.", 'success')
     return redirect(url_for('login'))
 
 
@@ -319,7 +319,7 @@ def messages_add():
         g.user.messages.append(msg)
         db.session.commit()
 
-        return redirect(f"/users/{g.user.id}")
+        return redirect(url_for('show_user', user_id=g.user.id))
 
     return render_template('messages/new.html', form=form)
 

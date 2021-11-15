@@ -22,15 +22,23 @@ os.environ['DATABASE_URL'] = "postgresql:///warbler-test"
 
 from app import app, CURR_USER_KEY
 
+# Use test database and don't clutter tests with SQL
+app.config['SQLALCHEMY_ECHO'] = False
+
+# Make Flask errors be real errors, rather than HTML pages with error info
+app.config['TESTING'] = True
+
+# don't use Flask DebugToolbar
+app.config['DEBUG_TB_HOSTS'] = ['dont-show-debug-toolbar']
+
+# disable CSRF checking
+app.config['WTF_CSRF_ENABLED'] = False
+
 # Create our tables (we do this here, so we only create the tables
 # once for all tests --- in each test, we'll delete the data
 # and create fresh new clean test data
-
+db.drop_all()
 db.create_all()
-
-# Don't have WTForms use CSRF at all, since it's a pain to test
-
-app.config['WTF_CSRF_ENABLED'] = False
 
 
 class MessageViewTestCase(TestCase):
@@ -52,7 +60,7 @@ class MessageViewTestCase(TestCase):
         db.session.commit()
 
     def test_add_message(self):
-        """Can use add a message?"""
+        """Can user add a message?"""
 
         # Since we need to change the session to mimic logging in,
         # we need to use the changing-session trick:
