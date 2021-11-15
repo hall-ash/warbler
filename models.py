@@ -165,6 +165,14 @@ class User(db.Model):
 
         return msgs_from_following.union_all(own_msgs).order_by(Message.timestamp.desc()).limit(limit).all()
 
+    def get_liked_msgs(self, limit=100):
+        '''
+        Get all messages this user has liked. Returns at most 'limit' messages ordered by most recent first.
+        '''
+
+        liked_msgs = Message.query.join(Like, Like.message_id == Message.id).filter(Like.user_id == self.id).order_by(Message.timestamp.desc()).limit(limit).all()
+        return liked_msgs
+
 
     def toggle_msg_like(self, msg):
         '''If message is not in users's list of liked messages, add it. Otherwise, remove
@@ -180,7 +188,7 @@ class User(db.Model):
 
                 db.session.add(self)
                 db.session.commit()
-                
+
         except Exception as e:
             logging.exception(e)
             raise e

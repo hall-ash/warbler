@@ -289,7 +289,16 @@ def toggle_msg_like(msg_id):
 
     except Exception as e:
         logging.exception(e)
-        return render_template('eror-page.html')
+        return render_template('error-page.html')
+
+@app.route('/users/likes')
+@login_required
+def show_user_likes():
+    '''Show a list of messages the user has liked.'''
+
+    messages = g.user.get_liked_msgs()
+
+    return render_template('home.html', messages=messages)
 
 
 ##############################################################################
